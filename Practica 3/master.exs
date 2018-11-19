@@ -1,4 +1,4 @@
-# AUTOR: Jorge Fernández y Jorge Aznar
+# AUTOR: Jorge Fernandez y Jorge Aznar
 # NIAs: 721529 y 721556
 # FICHERO: chat.exs
 # FECHA: 7 de noviembre de 2018
@@ -7,14 +7,13 @@
 
 defmodule Master do
 
-	def encontrar_amigos_rec(n, amigos, worker, n+1) do
+	def encontrar_amigos_rec(n, amigos, worker, 1000001) do
 	  lista = amigos
 	end
-	
 	def encontrar_amigos_rec(n, amigos, worker, i) do
 		send(worker, {self(), i, :sumaListaDivisores})
 		receive do
-			{pid, y}   ->	send (worker, {self, y, :sumaListaDivisores})
+			{pid, y}   ->	send(worker, {self(), y, :sumaListaDivisores})
 							receive do
 								{pid, x} -> cond do
 											 x == i && y != i ->
