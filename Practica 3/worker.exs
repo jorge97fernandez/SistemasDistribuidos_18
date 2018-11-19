@@ -20,7 +20,7 @@ defmodule Worker do
 	end
 	
 	def divisores(n) do
-	  listaDivisores(:math.sqrt(n) + 1,n,[])
+	  listaDivisores(div(n,2)+1,n,[])
 	end
 	
 	def sumaLista([],total,pid) do
@@ -34,7 +34,7 @@ defmodule Worker do
 	end
 	
 	def sumaListaDivisores(n,pid) do
-	  lista = listaDivisores(:math.sqrt(n) + 1,n,[])
+	  lista = listaDivisores(div(n,2)+1,n,[])
 	  sumaLista(lista,0,pid)
 	end
 	

@@ -16,7 +16,7 @@ defmodule Master do
 			{pid, y}   ->	send(worker, {self(), y, :sumaListaDivisores})
 							receive do
 								{pid, x} -> cond do
-											 x == i && y != i ->
+											 x == i && y != i && y > i ->
 																  encontrar_amigos_rec(n, [{i, y}| amigos], worker, i + 1)
 										     true			  -> 			
 																  encontrar_amigos_rec(n, amigos, worker, i + 1)
