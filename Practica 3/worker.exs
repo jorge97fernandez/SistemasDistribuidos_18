@@ -25,7 +25,7 @@ defmodule Worker do
 	
 	def sumaLista([],total,pid) do
 	  cuentaTotal = total
-	  send(pid,{self,cuentaTotal})
+	  send(pid,{self(),cuentaTotal})
 	end
 	
 	def sumaLista(lista,total,pid) do
@@ -38,8 +38,8 @@ defmodule Worker do
 	  sumaLista(lista,0,pid)
 	end
 	
-	def listaSumada(lista) do
-		sumaLista(lista,0)
+	def listaSumada(lista,pid) do
+		sumaLista(lista,0,pid)
 	end
 	
 	def worker() do
@@ -47,4 +47,5 @@ defmodule Worker do
 			{pid,i,:sumaListaDivisores} -> sumaListaDivisores(i,pid)
 		end
 		worker()
+	end
 end
