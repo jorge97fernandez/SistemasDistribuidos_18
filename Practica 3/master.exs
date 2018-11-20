@@ -13,7 +13,8 @@ defmodule Master do
 	def encontrar_amigos_rec(n, amigos, worker, i) do
 		send(worker, {self(), i, :sumaListaDivisores})
 		receive do
-			{pid, y}   ->	send(worker, {self(), y, :sumaListaDivisores})
+			{pid, y}   ->	IO.puts(i)
+							send(worker, {self(), y, :sumaListaDivisores})
 							receive do
 								{pid, x} -> cond do
 											 x == i && y != i && y > i ->
