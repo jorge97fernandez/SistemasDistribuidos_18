@@ -13,14 +13,15 @@ defmodule Worker do
 	
 	def listaDivisores(m,n,lista) do
 		cond do
-		  rem(n,m) == 0  -> lista = [m | lista]
+		  rem(n,m) == 0  -> lista = [div(n,m)| lista]
+							lista = [m | lista]
 							listaDivisores(m - 1,n,lista)
 		  true     		 ->	listaDivisores(m - 1,n,lista)
 		end
 	end
 	
 	def divisores(n) do
-	  listaDivisores(div(n,2)+1,n,[])
+	  listaDivisores(trunc((:math.sqrt(n))+1),n,[])
 	end
 	
 	def sumaLista([],total,pid) do
@@ -34,7 +35,7 @@ defmodule Worker do
 	end
 	
 	def sumaListaDivisores(n,pid) do
-	  lista = listaDivisores(div(n,2)+1,n,[])
+	  lista = listaDivisores(trunc((:math.sqrt(n))+1),n,[])
 	  sumaLista(lista,0,pid)
 	end
 	
