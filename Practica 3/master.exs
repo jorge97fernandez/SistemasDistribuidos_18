@@ -7,10 +7,10 @@
 
 defmodule Master do
 
-	def encontrar_amigos_rec(n, amigos, worker, 1000001) do
+	def encontrar_amigos_rec_2(n, amigos, worker, 1000001) do
 	  lista = amigos
 	end
-	def encontrar_amigos_rec(n, amigos, worker, i) do
+	def encontrar_amigos_rec_2(n, amigos, worker, i) do
 		send(worker, {self(), i, :sumaListaDivisores})
 		receive do
 			{pid, y}   ->	IO.puts(i)
@@ -18,17 +18,44 @@ defmodule Master do
 							receive do
 								{pid, x} -> cond do
 											 x == i && y != i && y > i ->
-																  encontrar_amigos_rec(n, [{i, y}| amigos], worker, i + 1)
+																  encontrar_amigos_rec_2(n, [{i, y}| amigos], worker, i + 1)
 										     true			  -> 			
-																  encontrar_amigos_rec(n, amigos, worker, i + 1)
+																  encontrar_amigos_rec_2(n, amigos, worker, i + 1)
 										   end
 							end
 		end
 	end
 
-	def encontrar_amigos(n, amigos, worker) do
-	  encontrar_amigos_rec(n, amigos, worker, 1)
+	def encontrar_amigos(n, amigos, worker,tipo) do
+	case tipo do
+		:dos     ->encontrar_amigos_rec_2(n, amigos, worker, 1)
+		:unotres ->encontrar_amigos_rec_13(n, amigos, worker, 1)
+	end
 	end	
+	def encontrar_amigos_rec_13(n, amigos, worker, 1000001) do
+	  lista = amigos
+	end
+	def encontrar_amigos_rec_13(n, amigos, worker, i) do
+		send(worker, {self(), i, :listaDivisores})
+		receive do
+			{pid, y}   ->	IO.puts(i)
+							send(worker, {self(), y, :sumaLista})
+							receive do
+								{pid, x} -> send(worker, {self(), x, :listaDivisores})
+											receive do
+												{pid, y2}   ->	send(worker, {self(), y2, :sumaLista})
+												receive do
+													{pid,x2}      ->cond do
+																	x2 == i && x != i && x > i ->
+																						encontrar_amigos_rec_13(n, [{i, x}| amigos], worker, i + 1)
+																	true			  		-> 			
+																				encontrar_amigos_rec_13(n, amigos, worker, i + 1)
+																	end
+												end
+											end
+							end
+		end
+	end
 end
 
 	
