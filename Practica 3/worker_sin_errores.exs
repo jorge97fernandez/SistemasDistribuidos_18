@@ -43,36 +43,6 @@ defmodule Worker do
 	def listaSumada(lista,pid) do
 		sumaLista(lista,0,pid)
 	end
-	def init do 
-    case :random.uniform(100) do
-      random when random > 80 -> :crash
-      random when random > 50 -> :omission
-      random when random > 25 -> :timing
-      _ -> :no_fault
-    end
-  end  
-
-  def loop do
-    loopI(init())
-  end
-  
-  defp loopI(worker_type) do
-    delay = case worker_type do
-      :crash -> if :random.uniform(100) > 75, do: :infinity
-      :timing -> :random.uniform(100)*1000
-      _ ->  0
-    end
-    Process.sleep(delay)
-    result = receive do
-     {pid,i,:sumaListaDivisores} ->
-             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaListaDivisores(i,pid)
-	 {pid,i,:listaDivisores} ->
-             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: divisores(i,pid)
-	 {pid,i,:sumaLista} ->
-             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaLista(i,0,pid)
-    end
-    loopI(worker_type)
-  end
 	
 	def worker() do
 		receive do
@@ -82,5 +52,4 @@ defmodule Worker do
 		end
 		worker()
 	end
-	
 end
