@@ -20,8 +20,9 @@ defmodule Worker do
 		end
 	end
 	
-	def divisores(n) do
-	  listaDivisores(trunc((:math.sqrt(n))+1),n,[])
+	def divisores(n,pid) do
+	  lista= listaDivisores(trunc((:math.sqrt(n))+1),n,[])
+	  send(pid,{self(),lista})
 	end
 	
 	def sumaLista([],total,pid) do
@@ -46,6 +47,8 @@ defmodule Worker do
 	def worker() do
 		receive do
 			{pid,i,:sumaListaDivisores} -> sumaListaDivisores(i,pid)
+			{pid,i,:listaDivisores}     -> divisores(i,pid)
+			{pid,i,:sumaLista}          -> sumaLista(i,0,pid)
 		end
 		worker()
 	end
