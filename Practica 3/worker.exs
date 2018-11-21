@@ -22,26 +22,26 @@ defmodule Worker do
 	
 	def divisores(n,pid) do
 	  lista= listaDivisores(trunc((:math.sqrt(n))+1),n,[])
-	  send(pid,{self(),lista})
+	  send(pid,{self(),lista,n})
 	end
 	
-	def sumaLista([],total,pid) do
+	def sumaLista([],total,pid,n) do
 	  cuentaTotal = total
-	  send(pid,{self(),cuentaTotal})
+	  send(pid,{self(),cuentaTotal,n})
 	end
 	
-	def sumaLista(lista,total,pid) do
+	def sumaLista(lista,total,pid,n) do
 	  total= total + hd(lista)
-	  sumaLista(tl(lista),total,pid)
+	  sumaLista(tl(lista),total,pid,n)
 	end
 	
 	def sumaListaDivisores(n,pid) do
 	  lista = listaDivisores(trunc((:math.sqrt(n))+1),n,[])
-	  sumaLista(lista,0,pid)
+	  sumaLista(lista,0,pid,n)
 	end
 	
 	def listaSumada(lista,pid) do
-		sumaLista(lista,0,pid)
+		sumaLista(lista,0,pid,lista)
 	end
 	def init do 
     case :random.uniform(100) do
@@ -69,7 +69,7 @@ defmodule Worker do
 	 {pid,i,:listaDivisores} ->
              if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: divisores(i,pid)
 	 {pid,i,:sumaLista} ->
-             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaLista(i,0,pid)
+             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaLista(i,0,pid,i)
     end
     loopI(worker_type)
   end
@@ -78,7 +78,7 @@ defmodule Worker do
 		receive do
 			{pid,i,:sumaListaDivisores} -> sumaListaDivisores(i,pid)
 			{pid,i,:listaDivisores}     -> divisores(i,pid)
-			{pid,i,:sumaLista}          -> sumaLista(i,0,pid)
+			{pid,i,:sumaLista}          -> sumaLista(i,0,pid,i)
 		end
 		worker()
 	end
