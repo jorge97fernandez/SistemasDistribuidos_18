@@ -26,13 +26,11 @@ defmodule Worker do
 	end
 	
 	def sumaLista([],total,pid,n) do
-	  cuentaTotal = total
-	  send(pid,{self(),cuentaTotal,n})
+	  send(pid,{self(),total,n})
 	end
 	
 	def sumaLista(lista,total,pid,n) do
-	  total= total + hd(lista)
-	  sumaLista(tl(lista),total,pid,n)
+	  sumaLista(tl(lista),total+hd(lista),pid,n)
 	end
 	
 	def sumaListaDivisores(n,pid) do
@@ -54,6 +52,9 @@ defmodule Worker do
 
   def loop do
     loopI(init())
+  end
+  def loopf() do
+	loopI(:no_fault)
   end
   
   defp loopI(worker_type) do
