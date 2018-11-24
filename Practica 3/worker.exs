@@ -1,9 +1,9 @@
 # AUTOR: Jorge Fernández y Jorge Aznar
 # NIAs: 721529 y 721556
 # FICHERO: chat.exs
-# FECHA: 7 de noviembre de 2018
-# TIEMPO: 9 horas 
-# DESCRIPCION: codigo correspondiente al chat a desarrollar en la practica 2
+# FECHA: 23 de noviembre de 2018
+# TIEMPO: 13 horas 
+# DESCRIPCION: codigo correspondiente al worker a desarrollar en la practica 3
 
 defmodule Worker do
 
@@ -48,40 +48,60 @@ defmodule Worker do
       random when random > 25 -> :timing
       _ -> :no_fault
     end
-  end  
+	end  
 
-  def loop do
-    loopI(init())
-  end
-  def loopf() do
-	loopI(:no_fault)
-  end
+	def loop do
+		loopI(init())
+	end
+	def loopf() do
+		loopI(:no_fault)
+	end
   
-  defp loopI(worker_type) do
-    delay = case worker_type do
-      :crash -> if :random.uniform(100) > 75, do: :infinity
-      :timing -> :random.uniform(100)*1000
-      _ ->  0
-    end
-    Process.sleep(delay)
-    result = receive do
-     {pid,i,:sumaListaDivisores} ->
-             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaListaDivisores(i,pid)
-	 {pid,i,:listaDivisores} ->
-             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: divisores(i,pid)
-	 {pid,i,:sumaLista} ->
-             if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaLista(i,0,pid,i)
-    end
-    loopI(worker_type)
-  end
-	
-	def worker() do
-		receive do
-			{pid,i,:sumaListaDivisores} -> sumaListaDivisores(i,pid)
-			{pid,i,:listaDivisores}     -> divisores(i,pid)
-			{pid,i,:sumaLista}          -> sumaLista(i,0,pid,i)
+	defp loopI(worker_type) do
+		delay = case worker_type do
+		:crash -> if :random.uniform(100) > 75, do: :infinity
+		:timing -> :random.uniform(100)*1000
+		_ ->  0
 		end
-		worker()
+		Process.sleep(delay)
+		result = receive do
+		{pid,i,:sumaListaDivisores} ->
+				if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaListaDivisores(i,pid)
+		{pid,i,:listaDivisores} ->
+				if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: divisores(i,pid)
+		{pid,i,:sumaLista} ->
+				if (((worker_type == :omission) and (:random.uniform(100) < 75)) or (worker_type == :timing) or (worker_type==:no_fault)), do: sumaLista(i,0,pid,i)
+		end
+		loopI(worker_type)
+	end
+	
+	def pedir_calculo(n,mensaje,pid_master,pid_worker,timeout,retry) when retry <5 do
+		send(pid_worker,{self(),n,mensaje})
+		receive do
+			{pid,total,num} -> if ( num ==n )do
+							   send(pid_master,{self(),total,num})
+							   else
+							   pedir_calculo(n,mensaje,pid_master,pid_worker,timeout*2,retry+1)
+							   end
+			after timeout   -> pedir_calculo(n,mensaje,pid_master,pid_worker,timeout*2,retry+1)
+		end
+	end
+	def pedir_calculo(n,mensaje,pid_master,pid_worker,timeout,retry) when retry ==5 do
+		send(pid_master,{self(),:fallo})
+	end
+	def proxy_worker(pid_worker) do
+		receive do
+			{pid,i,calculo} -> pedir_calculo(i,calculo,pid,pid_worker,100,0)
+		end
+		proxy_worker(pid_worker)
+	end
+	def iniciar_worker do
+		pid_worker=spawn(Worker,:loop,[])
+		proxy_worker(pid_worker)
+	end
+	def iniciar_worker_no_fault do
+		pid_worker=spawn(Worker,:loopf,[])
+		proxy_worker(pid_worker)
 	end
 	
 end
