@@ -66,7 +66,7 @@ defmodule ServidorGV do
 
         spawn(__MODULE__, :init_monitor, [self()]) # otro proceso concurrente
 
-        state=%ServidorGV()
+        state=%ServidorGV{}
 
         bucle_recepcion(state)
     end
@@ -84,7 +84,7 @@ defmodule ServidorGV do
 
                         ### VUESTRO CODIGO
 
-                    {:obten_vista, pid} -> vista=%(numVista: ServidorGV.numVista, primario: ServidorGV.primario, copia: ServidorGV.copia)
+                    {:obten_vista, pid} -> vista=%{numVista: ServidorGV.numVista, primario: ServidorGV.primario, copia: ServidorGV.copia}
                                           send(pid,{:vista_valida,vista,not ServidorGV.tentativa})
 
                         ### VUESTRO CODIGO
