@@ -85,7 +85,7 @@ defmodule ServidorGV do
                         ### VUESTRO CODIGO
 
                     {:obten_vista, pid} -> vista=%(numVista: ServidorGV.numVista, primario: ServidorGV.primario, copia: ServidorGV.copia)
-                                          send(pid,{:vista_valida,vista,not ServidorGV.tentativa)
+                                          send(pid,{:vista_valida,vista,not ServidorGV.tentativa})
 
                         ### VUESTRO CODIGO
 
