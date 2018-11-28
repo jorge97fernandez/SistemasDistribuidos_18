@@ -8,7 +8,7 @@ defmodule ServidorGV do
     # Tipo estructura de datos que guarda el estado del servidor de vistas
     # COMPLETAR  con lo campos necesarios para gestionar
     # el estado del gestor de vistas
-    defstruct   ??????????????
+    defstruct   numVista: 0, primario: :undefined, copia: :undefined, nodoEspera: :undefined, tentativa: true
 
     # Constantes
     @latidos_fallidos 4
@@ -53,7 +53,7 @@ defmodule ServidorGV do
     @spec startService(node) :: boolean
     def startService(nodoElixir) do
         NodoRemoto.esperaNodoOperativo(nodoElixir, __MODULE__)
-        
+
         # Poner en marcha el código del gestor de vistas
         Node.spawn(nodoElixir, __MODULE__, :init_sv, [])
    end
@@ -66,9 +66,9 @@ defmodule ServidorGV do
 
         spawn(__MODULE__, :init_monitor, [self()]) # otro proceso concurrente
 
-        #### VUESTRO CODIGO DE INICIALIZACION
+        state=%ServidorGV()
 
-        bucle_recepcion(??????????)
+        bucle_recepcion(state)
     end
 
     def init_monitor(pid_principal) do
@@ -78,25 +78,25 @@ defmodule ServidorGV do
     end
 
 
-    defp bucle_recepcion(???????????) do
-        ?????? = receive do
-                    {:latido, n_vista_latido, nodo_emisor} ->
-                
+    defp bucle_recepcion(state) do
+        receive do
+                    #{:latido, n_vista_latido, nodo_emisor} ->
+
                         ### VUESTRO CODIGO
-                
-                    {:obten_vista, pid} ->
 
-                        ### VUESTRO CODIGO                
+                    {:obten_vista, pid} -> vista=%(numVista: ServidorGV.numVista, primario: ServidorGV.primario, copia: ServidorGV.copia)
+                                          send(pid,{:vista_valida,vista,not ServidorGV.tentativa)
 
-                    :procesa_situacion_servidores ->
-                
+                        ### VUESTRO CODIGO
+
+                    #:procesa_situacion_servidores ->
+
                         ### VUESTRO CODIGO
 
         end
-
-        bucle_recepcion(??????????)
+        bucle_recepcion(state)
     end
-    
+
     # OTRAS FUNCIONES PRIVADAS VUESTRAS
 
 end
