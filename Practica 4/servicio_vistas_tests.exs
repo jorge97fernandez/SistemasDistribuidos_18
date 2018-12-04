@@ -19,9 +19,9 @@ defmodule  GestorVistasTest do
     # Para gestionar nodos y maquinas
     setup_all do
         # Poner en marcha los servidores, obtener nodos
-        #maquinas = ["127.0.0.1", "155.210.154.196", 
-        #            "155.210.154.197", "155.210.154.198"] 
-        maquinas = ["127.0.0.1"]
+        maquinas = ["127.0.0.1", "155.210.154.194", 
+                    "155.210.154.192","155.210.154.191"] 
+        #maquinas = ["127.0.0.1"]
             # devuelve una mapa de nodos del servidor y clientes
         nodos = startServidores(maquinas)
         
@@ -49,7 +49,7 @@ defmodule  GestorVistasTest do
 
 
     # Test 2 : primer primario
-    @tag :deshabilitado
+    #@tag :deshabilitado
     test "Primer primario", %{c1: c} do
         IO.puts("Test: Primer primario ...")
 
@@ -61,7 +61,7 @@ defmodule  GestorVistasTest do
 
 
     # Test 3 : primer nodo copia
-    @tag :deshabilitado
+    #@tag :deshabilitado
     test "Primer nodo copia", %{c1: c1, c2: c2} do
         IO.puts("Test: Primer nodo copia ...")
 
@@ -78,7 +78,7 @@ defmodule  GestorVistasTest do
 
 
     ## Test 4 : Después, Copia (C2) toma el relevo si Primario falla.,
-    @tag :deshabilitado
+    #@tag :deshabilitado
     test "Copia releva primario", %{c2: c2} do
         IO.puts("Test: copia toma relevo si primario falla ...")
 
@@ -92,7 +92,7 @@ defmodule  GestorVistasTest do
     end
 
     ## Test 5 : Servidor rearrancado (C1) se convierte en copia.
-    @tag :deshabilitado
+    #@tag :deshabilitado
     test "Servidor rearrancado se conviert en copia", %{c1: c1, c2: c2} do
         IO.puts("Test: Servidor rearrancado se conviert en copia ...")
 
@@ -109,7 +109,7 @@ defmodule  GestorVistasTest do
     end
 
     ## Test 6 : Servidor en espera (C3) se convierte en copia si primario falla.
-    @tag :deshabilitado
+    #@tag :deshabilitado
     test "Servidor en espera se convierte en copia", %{c1: c1, c3: c3} do
         IO.puts("Test: Servidor en espera se convierte en copia ...")
 
@@ -128,7 +128,17 @@ defmodule  GestorVistasTest do
  
     ## Test 7 : Primario rearrancado (C2) tratado como caido y 
     #           es convertido en nodo en espera.
-    #       rearrancado_caido(C1, C3),
+	test "Primario rearrancado tratado como caido", %{c1: c1, c3: c3, c2: c2} do
+        IO.puts("Test: Primario rearrancado tratado como caido ...")
+		
+		{vista, _} = ClienteGV.latido(c3, 5)   # vista valida
+		rearrancado_caido(c1, c3, c2, 4, ServidorGV.latidos_fallidos() * 2)
+		
+		comprobar_valida(c1, c1, c3, vista.num_vista) 
+		
+		IO.puts(" ... Superado")
+	
+	end
 
     ## Test 8 : Servidor de vistas espera a que primario confirme vista
     ##          pero este no lo hace.
@@ -203,6 +213,7 @@ defmodule  GestorVistasTest do
         if vista.copia != c2 do
             Process.sleep(ServidorGV.intervalo_latidos())
             primer_nodo_copia(c1, c2, x - 1)
+		else 
         end
     end
 
@@ -240,6 +251,17 @@ defmodule  GestorVistasTest do
             espera_pasa_a_copia(c1, c3, num_vista_valida, x - 1)
         end
     end
+	
+	defp rearrancado_caido(_c1, _c3, _c2, _num_vista_valida, 0), do: :fin
+	defp rearrancado_caido(c1, c3, c2,num_vista_valida, x) do
+		ClienteGV.latido(c2, 0)
+		{vista, _} = ClienteGV.latido(c1, num_vista_valida)
+        
+        if (vista.primario != c1) or (vista.copia != c3) do
+            Process.sleep(ServidorGV.intervalo_latidos())
+            rearrancado_caido(c1, c3, c2, num_vista_valida, x - 1)
+        end
+	end
 
     defp comprobar_tentativa(nodo_cliente, nodo_primario, nodo_copia, n_vista) do
         # Solo interesa vista tentativa
