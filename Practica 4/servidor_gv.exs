@@ -68,7 +68,7 @@ defmodule ServidorGV do
 
         state=%ServidorGV{}
 
-        bucle_recepcion(state,0,0)
+        bucle_recepcion(state,0,0,false)
     end
 
     def init_monitor(pid_principal) do
@@ -78,25 +78,25 @@ defmodule ServidorGV do
     end
 
 
-    defp bucle_recepcion(state,numPrimario,numCopia) do
+    defp bucle_recepcion(state,numPrimario,numCopia,error) do
         receive do
-                    {:latido, n_vista_latido, nodo_emisor} ->  error= procesa_error_latido(state,n_vista_latido,nodo_emisor)
-															   state= procesa_latido(state,n_vista_latido,nodo_emisor)
+                    {:latido, n_vista_latido, nodo_emisor} ->  error= procesa_error_latido(state,n_vista_latido,nodo_emisor,error)
+															   state= procesa_latido(state,n_vista_latido,nodo_emisor,error)
 															   vista= %{num_vista: state.numVista, primario: state.primario, copia: state.copia}
 															   send({:cliente_gv,nodo_emisor},{:vista_tentativa,vista,state.tentativa})
 															   if (nodo_emisor== state.primario) do 
-															   bucle_recepcion(state,0,numCopia)
+															   bucle_recepcion(state,0,numCopia,error)
 															   end
 															   if (nodo_emisor== state.copia) do
-															   bucle_recepcion(state,numPrimario,0)
+															   bucle_recepcion(state,numPrimario,0,error)
 															   end
-															   bucle_recepcion(state,numPrimario,numCopia)
+															   bucle_recepcion(state,numPrimario,numCopia,error)
 
                         ### VUESTRO CODIGO
 
                     {:obten_vista, pid} -> vista= %{num_vista: state.numVista, primario: state.primario, copia: state.copia}
 										   send(pid,{:vista_valida,vista,state.valida})
-										   bucle_recepcion(state,numPrimario,numCopia)
+										   bucle_recepcion(state,numPrimario,numCopia,error)
 
                         ### VUESTRO CODIGO
 
@@ -108,33 +108,37 @@ defmodule ServidorGV do
 													 if(state.copia != :undefined) do
 													 numCopianuevo=numCopia + 1
 													 end
-													 continua= evaluarContinuidad(state,numPrimarionuevo,numCopianuevo)
+													 continua= evaluarContinuidad(state,numPrimarionuevo,numCopianuevo, error)
 													 if(continua == true) do
 													   state= evaluarCaidas(state,numPrimarionuevo,numCopianuevo)
 													   if (numPrimarionuevo == @latidos_fallidos) do
-													     bucle_recepcion(state,0,numCopianuevo)
+													     bucle_recepcion(state,0,numCopianuevo,not continua)
 													   end
 													   if(numCopianuevo == @latidos_fallidos) do
-													     bucle_recepcion(state,numPrimarionuevo,0)
+													     bucle_recepcion(state,numPrimarionuevo,0,not continua)
 													   end
-													     bucle_recepcion(state,numPrimarionuevo,numCopianuevo)
+													     bucle_recepcion(state,numPrimarionuevo,numCopianuevo,not continua)
 													 else
-													   bucle_recepcion(state,numPrimarionuevo,numCopianuevo)
+													   bucle_recepcion(state,numPrimarionuevo,numCopianuevo,not continua)
 													 end
                         ### VUESTRO CODIGO
 
         end
     end
 	
-	def procesa_error_latido(state,n_vista_latido,nodo_emisor) do
+	def procesa_error_latido(state,n_vista_latido,nodo_emisor,error) do
 		cond do
+			error == true -> true
 			n_vista_latido == 0 && nodo_emisor == state.primario && state.copia == :undefined -> true
+			n_vista_latido == 0 && nodo_emisor == state.primario && state.valida == false -> true
 			true 	-> false
 		end
 	end
 	
-	def procesa_latido(state,n_vista_latido,nodo_emisor) do
+	def procesa_latido(state,n_vista_latido,nodo_emisor,error) do
 		cond do 
+			error == true -> state=%ServidorGV{}
+							 state
 			n_vista_latido == 0 && nodo_emisor == state.primario && state.copia != :undefined && (state.nodoEspera == :undefined || state.nodoEspera == []) -> state= %{state| primario: state.copia, copia: nodo_emisor, numVista: state.numVista + 1, tentativa: true, valida: false}
 																																   state
 			n_vista_latido == 0 && nodo_emisor == state.primario && state.copia != :undefined && state.nodoEspera != :undefined -> state= %{state| primario: state.copia, copia: hd(state.nodoEspera), nodoEspera: tl(state.nodoEspera) ++ [nodo_emisor], numVista: state.numVista + 1, tentativa: true, valida: false}
@@ -160,8 +164,9 @@ defmodule ServidorGV do
 		end
 	end
 	
-	def evaluarContinuidad(state,numPrimario,numCopia) do
+	def evaluarContinuidad(state,numPrimario,numCopia,error) do
 	  cond do
+		error == true -> false
 		numPrimario == @latidos_fallidos && numCopia == @latidos_fallidos ->false
 		numPrimario == @latidos_fallidos && state.copia == :undefined && state.numVista > 1 -> 	false
 		true 															  -> true

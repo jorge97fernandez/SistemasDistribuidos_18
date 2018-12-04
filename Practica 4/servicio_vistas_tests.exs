@@ -19,9 +19,9 @@ defmodule  GestorVistasTest do
     # Para gestionar nodos y maquinas
     setup_all do
         # Poner en marcha los servidores, obtener nodos
-        maquinas = ["127.0.0.1", "155.210.154.194", 
-                    "155.210.154.192","155.210.154.191"] 
-        #maquinas = ["127.0.0.1"]
+        #maquinas = ["127.0.0.1", "155.210.154.196", 
+        #            "155.210.154.197", "155.210.154.198"] 
+        maquinas = ["127.0.0.1"]
             # devuelve una mapa de nodos del servidor y clientes
         nodos = startServidores(maquinas)
         
@@ -146,10 +146,34 @@ defmodule  GestorVistasTest do
     ##          - C3 no confirma vista en que es primario,
     ##          - Cae, pero C1 no es promocionado porque C3 no confimo !
     # primario_no_confirma_vista(C1, C2, C3),
+	test "Primario no confirma vista", %{c1: c1, c3: c3, c2: c2} do
+		IO.puts("Primario no confirma vista...")
+		
+		{vista, _} = ClienteGV.latido(c3, 5)   # vista valida
+		
+		ClienteGV.latido(c1, 0) # copia rearranca como nodo en espera(primario: c3,copia: c2,espera: c1)
+		ClienteGV.latido(c3, vista.num_vista + 1) # Confirma nueva vista 
+		comprobar_valida(c3, c3, c2, vista.num_vista + 1)
+		
+		ClienteGV.latido(c2, 0) # nueva copia rearranca como nodo en espera (primario: c3,copia: c1,espera: c2)
+		comprobar_tentativa(c1,c3,c1,vista.num_vista + 2)
+		
+		primario_no_confirma_vista(c3,7,ServidorGV.latidos_fallidos() * 2)
+		comprobar_tentativa(c1,:undefined ,:undefined,0)
+		
+		IO.puts(" ... Superado")
+	end
 
     ## Test 9 : Si anteriores servidores caen (Primario  y Copia),
     ##       un nuevo servidor sin inicializar no puede convertirse en primario.
     # sin_inicializar_no(C1, C2, C3),
+	test "Nuevo servidor sin inicializar trata ser primario", %{c1: c1, c3: c3, c2: c2} do
+		IO.puts("Nuevo servidor sin inicializar trata ser primario...")
+		sin_inicializar_no(c1,0,ServidorGV.latidos_fallidos() * 2)
+		comprobar_tentativa(c1,:undefined ,:undefined,0)
+		
+		IO.puts(" ... Superado")
+	end
 
 
     # ------------------ FUNCIONES DE APOYO A TESTS ------------------------
@@ -260,6 +284,22 @@ defmodule  GestorVistasTest do
         if (vista.primario != c1) or (vista.copia != c3) do
             Process.sleep(ServidorGV.intervalo_latidos())
             rearrancado_caido(c1, c3, c2, num_vista_valida, x - 1)
+        end
+	end
+	defp primario_no_confirma_vista(c3,num_vista,0), do: :fin
+	defp primario_no_confirma_vista(c3,num_vista,x) do
+		{vista, _}= ClienteGV.latido(c3, 0)
+		if (vista.primario != :undefined) or (vista.copia != :undefined) do
+            Process.sleep(ServidorGV.intervalo_latidos())
+            primario_no_confirma_vista(c3, num_vista, x - 1)
+        end
+	end
+	defp sin_inicializar_no(c1,num_vista,0), do: :fin
+	defp sin_inicializar_no(c1,num_vista,x) do
+		{vista, _}= ClienteGV.latido(c1, 0)
+		if (vista.primario != :undefined) or (vista.copia != :undefined) do
+            Process.sleep(ServidorGV.intervalo_latidos())
+            sin_inicializar_no(c1, num_vista, x - 1)
         end
 	end
 
