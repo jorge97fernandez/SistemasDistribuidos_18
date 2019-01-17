@@ -55,7 +55,7 @@ defmodule Perfectos do
     a ++ b
   end
   
-  def servidor(lista) do
+  def servidor(lista, num, ultim) do
     receive do
       {pid, :perfectos} -> 	ultim = ultim + 1
 				ultim = rem(ultim, num)
