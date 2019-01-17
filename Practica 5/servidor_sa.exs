@@ -48,20 +48,59 @@ defmodule ServidorSA do
 
     #------------- VUESTRO CODIGO DE INICIALIZACION AQUI..........
 
-		IO.puts("Inicio servicio")
 		server= %ServidorSA{}
+		Map.new(server.bd)
 		spawn(fn -> primerLatido(nodo_servidor_gv) end)
          # Poner estado inicial
-        bucle_recepcion_principal(server) 
+        bucle_recepcion_principal(server,nodo_servidor_gv) 
     end
 
 
-    defp bucle_recepcion_principal(server) do
+    defp bucle_recepcion_principal(server,nodo_servidor_gv) do
         receive do
 
                     # Solicitudes de lectura y escritura
                     # de clientes del servicio alm.
-                  {op, param, nodo_origen}  ->
+		  {:escribe_generico, {clave, nuevo_valor, con_hash}, pid} ->
+				cond do
+					con_hash == false ->
+						{vista,booleano} = ClienteGV.obten_vista(nodo_servidor_gv)
+						send({:servidor_sa,vista.copia},{:actualiza_copia,{clave, 							nuevo_valor, con_hash},Node.self()})
+						receive do
+						{:ok,nuevovalor} ->
+						bd_nueva = escritura(server,clave,nuevo_valor)
+						server = %{server| bd: bd_nueva}
+						send({:cliente_sa,pid}, {:resultado,nuevo_valor})
+						bucle_recepcion_principal(server,nodo_servidor_gv)
+				end
+				end
+		  {:lee, clave, pid}  -> 
+						res = Map.get(server.bd,clave)
+						
+						cond do
+						  res == nil -> send({:cliente_sa,pid}, {:resultado,""})
+						  true       -> send({:cliente_sa,pid}, {:resultado,res})
+						end
+						bucle_recepcion_principal(server,nodo_servidor_gv)
+                  #{op, param, nodo_origen}  ->
+		  {:actualiza_copia,{clave,nuevo_valor, con_hash},pid} ->
+					cond do
+					con_hash == false ->
+						bd_nueva = escritura(server,clave,nuevo_valor)
+						server = %{server| bd: bd_nueva}
+						send({:servidor_sa,pid}, {:ok,nuevo_valor})
+						#send({:servidor_sa,pid},{:actualiza_copia,{clave, 							nuevo_valor, con_hash},self()})
+						bucle_recepcion_principal(server,nodo_servidor_gv)
+				end
+		{:envia_copia,nodo} -> 
+					send({:servidor_sa,nodo},{:toma_copia,server.bd,Node.self()})
+					bucle_recepcion_principal(server,nodo_servidor_gv)
+		{:toma_copia,nuevabd,pid} ->
+				IO.puts("Recibo copia")
+				server = %{server| bd: nuevabd}
+				bucle_recepcion_principal(server,nodo_servidor_gv)
+							
+		true  -> IO.puts("Mensaje ha llegado, pero no correcto")
 
 
                         # ----------------- vuestro código
@@ -71,30 +110,35 @@ defmodule ServidorSA do
 
 
                end
-
-        bucle_recepcion_principal(server)
     end
     
     #--------- Otras funciones privadas que necesiteis .......
 	
 	defp primerLatido(servidor) do
-		Process.register(:servidor_sa_aux,self())
-		IO.puts("Voy a enviar latido")
-		ClienteGV.latido(servidor,0)
-		latidos(servidor)
+		Process.register(self(),:servidor_sa_aux)
+		{atomo,vista,booleano} = ClienteGV.latido(servidor,0)
+		latidos(servidor,vista,booleano)
 	end
 	
-	defp latidos(servidor) do
-		receive do
-		{:vista_tentativa,vista,es_tentativa} -> 
-			IO.puts("Vista recibida, escribo primario nuevo")
-			IO.puts(vista.primario)
+	defp latidos(servidor,vista,booleano) do
 			cond do
-				vista.primario == Node.self() && es_tentativa && vista.numVista ==1 ->
-					ClienteGV.latido(servidor, -1)
-				vista.numVista >1 -> ClienteGV.latido(servidor, vista.numVista)
+				vista.primario == Node.self() &&  vista.num_vista ==1 ->
+					{atomo,nuevavista,booleano} = ClienteGV.latido(servidor, -1)
+					latidos(servidor,nuevavista,booleano)
+				vista.primario == Node.self() &&  booleano == true && vista.num_vista >2 && vista.copia != :undefined  ->
+				IO.puts(vista.copia)
+				send({:servidor_sa,vista.primario},{:envia_copia,vista.copia})
+				IO.puts("Confirmo Vista")
+				{atomo,nuevavista,booleano} = ClienteGV.latido(servidor, vista.num_vista)
+				latidos(servidor,nuevavista,booleano)
+
+				vista.num_vista >1 ->
+			{atomo,nuevavista,booleano} = ClienteGV.latido(servidor, vista.num_vista)
+			latidos(servidor,nuevavista,booleano)
 			end
-		end
-		latidos(servidor)
+	end
+	defp escritura(server,clave,nuevo_valor) do
+		bd=Map.put(server.bd,clave,nuevo_valor)
+		bd
 	end
 end

@@ -65,9 +65,10 @@ defmodule ClienteSA do
     """
     @spec escribe_generico( node(), String.t, String.t, boolean ) :: String.t
     def escribe_generico(nodo_cliente, clave, nuevo_valor, con_hash) do
+	IO.puts("Voy a enviar a")
+	IO.puts(nodo_cliente)
         send({:cliente_sa, nodo_cliente}, {:escribe_generico, 
                                         {clave, nuevo_valor, con_hash}, self()})
-
         receive do
             {:resultado, valor} -> valor
 
@@ -109,7 +110,9 @@ defmodule ClienteSA do
 
     defp bucle_recepcion(servidor_gv) do
         receive do
+	    true -> IO.puts("Algo, recibi")
             {op, param, pid} when (op == :lee) or (op == :escribe_generico) ->
+		IO.puts("Voy a realizar operacion")
                 resultado = realizar_operacion(op, param, servidor_gv)
                 send(pid, {:resultado, resultado})
                 bucle_recepcion(servidor_gv)
@@ -121,9 +124,11 @@ defmodule ClienteSA do
 
     defp realizar_operacion(op, param, servidor_gv) do
         # Obtener el primario del servicio de almacenamiento
-        p = ClienteGV.primario(servidor_gv)
+	p = ClienteGV.primario(servidor_gv)
+	{vis,res}= ClienteGV.obten_vista(servidor_gv)
         
-        #IO.puts "CLienteSA #{node} obtiene nod PRIMARIO #{p}"
+        
+        IO.puts("CLienteSA #{node} obtiene nod PRIMARIO #{p}")
     
         case p do
             :undefined ->  # esperamos un rato si aparece primario

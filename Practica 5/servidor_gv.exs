@@ -100,27 +100,44 @@ defmodule ServidorGV do
 
                         ### VUESTRO CODIGO
 
-                    :procesa_situacion_servidores -> numPrimarionuevo = 0
-													 numCopianuevo = 0
-													 if(state.primario != :undefined) do
-											         numPrimarionuevo=numPrimario + 1
-													 end
-													 if(state.copia != :undefined) do
-													 numCopianuevo=numCopia + 1
-													 end
-													 continua= evaluarContinuidad(state,numPrimarionuevo,numCopianuevo, error)
-													 if(continua == true) do
-													   state= evaluarCaidas(state,numPrimarionuevo,numCopianuevo)
-													   if (numPrimarionuevo == @latidos_fallidos) do
-													     bucle_recepcion(state,0,numCopianuevo,not continua)
-													   end
-													   if(numCopianuevo == @latidos_fallidos) do
-													     bucle_recepcion(state,numPrimarionuevo,0,not continua)
-													   end
-													     bucle_recepcion(state,numPrimarionuevo,numCopianuevo,not continua)
-													 else
-													   bucle_recepcion(state,numPrimarionuevo,numCopianuevo,not continua)
-													 end
+                    :procesa_situacion_servidores -> cond do
+													 state.primario == :undefined && state.copia == :undefined ->
+																	bucle_recepcion(state,0,0,error)
+													 state.copia == :undefined ->
+																	numPrimario= numPrimario + 1
+																	cond do
+																		numPrimario < @latidos_fallidos -> bucle_recepcion(state,numPrimario,0,false)
+																		numPrimario == @latidos_fallidos -> 
+																						res= evaluarContinuidad(state,numPrimario,numCopia,error)
+																						cond do 
+																							res == false -> bucle_recepcion(state,0,0,not res)
+																							true -> state= evaluarCaidas(state,numPrimario,numCopia)
+																											bucle_recepcion(state,0,0,not res)
+																						end
+																	end
+													 true ->
+															numPrimario= numPrimario + 1
+															numCopia= numCopia + 1
+															cond do 
+																numPrimario == @latidos_fallidos && numCopia == @latidos_fallidos ->
+																					bucle_recepcion(state,0,0,true)
+																numPrimario == @latidos_fallidos ->
+																	res = evaluarContinuidad(state,numPrimario,numCopia,error)
+																	cond do 
+																							res == false -> bucle_recepcion(state,0,0,not res)
+																							true -> state= evaluarCaidas(state,numPrimario,numCopia)
+																											bucle_recepcion(state,0,numCopia,not res)
+																	end
+																numCopia == @latidos_fallidos ->
+																	res = evaluarContinuidad(state,numPrimario,numCopia,error)
+																	cond do 
+																							res == false -> bucle_recepcion(state,0,0,not res)
+																							true -> state= evaluarCaidas(state,numPrimario,numCopia)
+																											bucle_recepcion(state,numPrimario,0,not res)
+																	end
+																true -> bucle_recepcion(state,numPrimario,numCopia,false)
+															end
+													end
                         ### VUESTRO CODIGO
 
         end
